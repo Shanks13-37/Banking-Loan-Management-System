@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Bank — Loan & Account Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #111318;
+      --surface2: #181b22;
+      --surface3: #1e2229;
+      --border: rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.13);
+      --gold: #c9a84c;
+      --gold-light: #e8c96d;
+      --gold-dim: rgba(201,168,76,0.15);
+      --green: #27c47a;
+      --green-dim: rgba(39,196,122,0.12);
+      --red: #e05555;
+      --red-dim: rgba(224,85,85,0.12);
+      --blue: #5b9af5;
+      --blue-dim: rgba(91,154,245,0.12);
+      --amber: #f0a430;
+      --amber-dim: rgba(240,164,48,0.12);
+      --text: #e8eaf0;
+      --text-2: #9aa0b4;
+      --text-3: #5a6070;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 100;
+    }
+
+    .sidebar-logo {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--gold), #a07830);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #000;
+      font-family: 'Playfair Display', serif;
+      letter-spacing: -1px;
+    }
+
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px; font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 2px;
+    }
+
+    .nav { padding: 16px 12px; flex: 1; }
+
+    .nav-section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-3);
+      padding: 8px 12px 6px;
+      margin-top: 8px;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      color: var(--text-2); font-size: 13.5px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active {
+      background: var(--gold-dim);
+      color: var(--gold-light);
+    }
+
+    .nav-item .icon {
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+
+    .sidebar-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .system-badge {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-label { font-size: 12px; color: var(--text-3); }
+
+    /* ─── MAIN ─── */
+    .main {
+      margin-left: 240px;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ─── TOPBAR ─── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(10,12,16,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px; font-weight: 600;
+      color: var(--text);
+    }
+
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: all 0.15s; border: none; font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: #000;
+    }
+    .btn-primary:hover { background: var(--gold-light); }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface3); color: var(--text); }
+
+    .btn-danger {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(224,85,85,0.2);
+    }
+    .btn-danger:hover { background: rgba(224,85,85,0.22); }
+
+    /* ─── CONTENT ─── */
+    .content { padding: 32px; flex: 1; }
+
+    /* ─── SECTIONS ─── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ─── METRICS GRID ─── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .metric-card.gold::before { background: linear-gradient(90deg, var(--gold), transparent); }
+    .metric-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+    .metric-card.blue::before { background: linear-gradient(90deg, var(--blue), transparent); }
+    .metric-card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
+    .metric-card.amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
+
+    .metric-card:hover { border-color: var(--border-strong); }
+
+    .metric-label {
+      font-size: 11px;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-3); margin-bottom: 10px;
+    }
+
+    .metric-value {
+      font-size: 28px; font-weight: 600;
+      font-family: 'Playfair Display', serif;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .metric-icon {
+      position: absolute; right: 16px; top: 18px;
+      font-size: 22px; opacity: 0.15;
+    }
+
+    /* ─── GRID LAYOUT ─── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .card-title {
+      font-size: 14px; font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-body { padding: 20px; }
+
+    /* ─── TABLE ─── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%; border-collapse: collapse;
+    }
+
+    thead th {
+      padding: 10px 16px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    tbody tr:hover { background: var(--surface2); }
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody td {
+      padding: 11px 16px;
+      color: var(--text-2);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .td-primary { color: var(--text) !important; font-weight: 500; }
+    .td-mono {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+    }
+
+    /* ─── BADGES ─── */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 9px; border-radius: 100px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .badge-green { background: var(--green-dim); color: var(--green); }
+    .badge-red { background: var(--red-dim); color: var(--red); }
+    .badge-amber { background: var(--amber-dim); color: var(--amber); }
+    .badge-blue { background: var(--blue-dim); color: var(--blue); }
+    .badge-gray { background: rgba(255,255,255,0.05); color: var(--text-3); }
+    .badge-gold { background: var(--gold-dim); color: var(--gold-light); }
+
+    /* ─── FORM ─── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 12px; font-weight: 500;
+      color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.8px;
+    }
+
+    input, select, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit; font-size: 13.5px;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    input::placeholder { color: var(--text-3); }
+
+    select option { background: var(--surface2); }
+
+    /* ─── TOAST ─── */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 9999;
+    }
+
+    .toast {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      font-size: 13px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: var(--shadow);
+      animation: slideIn 0.25s ease;
+      max-width: 340px;
+    }
+
+    .toast.success { border-color: rgba(39,196,122,0.3); }
+    .toast.error { border-color: rgba(224,85,85,0.3); }
+
+    @keyframes slideIn {
+      from { transform: translateX(30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ─── MODAL ─── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none; align-items: center; justify-content: center;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      width: 100%; max-width: 520px;
+      box-shadow: var(--shadow);
+      animation: modalIn 0.2s ease;
+    }
+
+    @keyframes modalIn {
+      from { transform: translateY(16px) scale(0.98); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 22px 24px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px; font-weight: 600;
+    }
+
+    .modal-close {
+      background: none; border: none; color: var(--text-3);
+      font-size: 20px; cursor: pointer; padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .modal-close:hover { background: var(--surface2); color: var(--text); }
+
+    .modal-body { padding: 24px; }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-3);
+    }
+
+    .empty-state .icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state p { font-size: 14px; }
+
+    /* ─── DIVIDER ─── */
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+    /* ─── AMOUNT ─── */
+    .amount-positive { color: var(--green); }
+    .amount-negative { color: var(--red); }
+
+    /* ─── LOADING ─── */
+    .loader {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border-strong);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── SECTION HEADER ─── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px; font-weight: 700;
+      color: var(--text);
+    }
+
+    .section-sub {
+      font-size: 13px; color: var(--text-3);
+      margin-top: 2px;
+    }
+
+    /* ─── EMI STATUS BAR ─── */
+    .emi-bar {
+      display: flex; gap: 3px; margin: 4px 0;
+      flex-wrap: wrap;
+    }
+
+    .emi-dot {
+      width: 10px; height: 10px;
+      border-radius: 3px;
+    }
+
+    .emi-dot.paid { background: var(--green); }
+    .emi-dot.pending { background: var(--surface3); border: 1px solid var(--border-strong); }
+    .emi-dot.overdue { background: var(--red); }
+    .emi-dot.failed { background: var(--amber); }
+
+    /* ─── INFO ROW ─── */
+    .info-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-3); }
+    .info-value { color: var(--text); font-weight: 500; }
+
+    /* ─── BRANCH CARD ─── */
+    .branch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .branch-card:hover { border-color: var(--border-strong); }
+    .branch-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .branch-meta { font-size: 12px; color: var(--text-3); margin-bottom: 16px; }
+    .branch-stats { display: flex; gap: 16px; }
+    .bs { flex: 1; }
+    .bs-value { font-size: 18px; font-weight: 600; font-family: 'Playfair Display', serif; }
+    .bs-label { font-size: 11px; color: var(--text-3); }
+
+    /* ─── FILTER ROW ─── */
+    .filter-row {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+
+    .filter-row input, .filter-row select {
+      flex: 1; min-width: 160px; max-width: 280px;
+    }
+
+    /* ─── ACCOUNT CHIP ─── */
+    .account-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 8px 2px 2px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+    }
+
+    .account-chip .dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; background: var(--gold-dim); color: var(--gold-light);
+    }
+
+    /* ─── STAT ROW ─── */
+    .stat-row {
+      display: flex; gap: 16px;
+      padding: 16px 0; border-bottom: 1px solid var(--border);
+    }
+
+    .stat-row:last-child { border-bottom: none; }
+
+    .stat { flex: 1; }
+    .stat-value { font-size: 18px; font-weight: 600; font-family: 'Playfair Display', serif; }
+    .stat-label { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+    /* ─── CONCURRENCY ─── */
+    .race-result {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-top: 12px;
+    }
+
+    .race-title { font-weight: 600; margin-bottom: 12px; font-size: 13px; }
+
+    .worker-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .worker-row:last-of-type { border-bottom: none; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+    .mb-16 { margin-bottom: 16px; }
+    .mb-20 { margin-bottom: 20px; }
+    .mt-16 { margin-top: 16px; }
+    .text-right { text-align: right; }
+    .flex { display: flex; }
+    .gap-8 { gap: 8px; }
+    .items-center { align-items: center; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">N</div>
+      <div>
+        <div class="logo-text">Nexus Bank</div>
+        <div class="logo-sub">Management Portal</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section-label">Overview</div>
+    <button class="nav-item active" onclick="navigate('dashboard')">
+      <span class="icon">◈</span> Dashboard
+    </button>
+
+    <div class="nav-section-label">Banking</div>
+    <button class="nav-item" onclick="navigate('customers')">
+      <span class="icon">👤</span> Customers
+    </button>
+    <button class="nav-item" onclick="navigate('accounts')">
+      <span class="icon">🏦</span> Accounts
+    </button>
+    <button class="nav-item" onclick="navigate('transfers')">
+      <span class="icon">↔</span> Transfers
+    </button>
+    <button class="nav-item" onclick="navigate('statements')">
+      <span class="icon">📄</span> Statements
+    </button>
+
+    <div class="nav-section-label">Lending</div>
+    <button class="nav-item" onclick="navigate('loans')">
+      <span class="icon">💳</span> Loans
+    </button>
+    <button class="nav-item" onclick="navigate('emis')">
+      <span class="icon">📅</span> EMI Schedule
+    </button>
+
+    <div class="nav-section-label">Analytics</div>
+    <button class="nav-item" onclick="navigate('branches')">
+      <span class="icon">🏢</span> Branch Performance
+    </button>
+    <button class="nav-item" onclick="navigate('defaulters')">
+      <span class="icon">⚠</span> Defaulters
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="system-badge">
+      <div class="status-dot"></div>
+      <span class="status-label">System Online</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="refreshDashboard()">↺ Refresh</button>
+      <button class="btn btn-primary" id="primary-action" onclick="showPrimaryModal()">+ New Customer</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ─── DASHBOARD ─── -->
+    <div class="section active" id="section-dashboard">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Good morning</div>
+          <div class="section-sub" id="dashboard-date"></div>
+        </div>
+      </div>
+
+      <div class="metrics-grid" id="metrics-grid">
+        <div class="metric-card gold"><div class="metric-label">Total Customers</div><div class="metric-value" id="m-customers">—</div><div class="metric-icon">👤</div></div>
+        <div class="metric-card blue"><div class="metric-label">Total Accounts</div><div class="metric-value" id="m-accounts">—</div><div class="metric-icon">🏦</div></div>
+        <div class="metric-card green"><div class="metric-label">Total Deposits</div><div class="metric-value" id="m-deposits">—</div><div class="metric-icon">💰</div></div>
+        <div class="metric-card blue"><div class="metric-label">Active Loans</div><div class="metric-value" id="m-loans">—</div><div class="metric-icon">💳</div></div>
+        <div class="metric-card red"><div class="metric-label">Overdue EMIs</div><div class="metric-value" id="m-overdue">—</div><div class="metric-icon">⚠</div></div>
+        <div class="metric-card amber"><div class="metric-label">Suspicious Txns</div><div class="metric-value" id="m-suspicious">—</div><div class="metric-icon">🔍</div></div>
+        <div class="metric-card green"><div class="metric-label">Fixed Deposits</div><div class="metric-value" id="m-fds">—</div><div class="metric-icon">📈</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Upcoming EMIs</div>
+            <span class="badge badge-gold" id="emi-count-badge">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Loan</th>
+                  <th>Due Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="emi-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Accounts</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Account No.</th>
+                  <th>Customer</th>
+                  <th>Type</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="accounts-table-dash"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Active Loans</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Loan ID</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Principal</th>
+                <th>Rate</th>
+                <th>Tenure</th>
+                <th>Monthly EMI</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="loans-table-dash"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 24px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">DBMS Operations</div>
+          </div>
+          <div class="card-body">
+            <div class="flex gap-8" style="flex-wrap: wrap;">
+              <button class="btn btn-ghost" onclick="runConcurrencyDemo()">Run Concurrency Demo</button>
+              <button class="btn btn-danger" onclick="resetDemoData()">Reset Seed Data</button>
+            </div>
+            <p style="margin-top: 14px; color: var(--text-2); line-height: 1.6;">
+              Use these controls to demonstrate lost-update prevention and to restore the seeded dataset before another run.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Concurrency Result</div>
+            <span class="badge badge-blue" id="concurrency-status">Ready</span>
+          </div>
+          <div class="card-body">
+            <div id="concurrency-summary" style="color: var(--text-2); line-height: 1.6;">
+              Run the demo to compare the naive race condition with the serialized withdrawal flow.
+            </div>
+            <div class="table-wrap mt-16">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mode</th>
+                    <th>Successes</th>
+                    <th>Final Balance</th>
+                    <th>Ledger Balance</th>
+                    <th>Lost Update</th>
+                  </tr>
+                </thead>
+                <tbody id="concurrency-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CUSTOMERS ─── -->
+    <div class="section" id="section-customers">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Customers</div>
+          <div class="section-sub">Manage customer profiles</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-customer')">+ Add Customer</button>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="filter-row">
+            <input type="text" id="customer-search" placeholder="Search by name, phone…" oninput="filterCustomers()" />
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Full Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Address</th>
+                  <th>Since</th>
+                </tr>
+              </thead>
+              <tbody id="customers-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ACCOUNTS ─── -->
+    <div class="section" id="section-accounts">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Accounts</div>
+          <div class="section-sub">All bank accounts</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-account')">+ Open Account</button>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="filter-row">
+            <input type="text" id="account-search" placeholder="Search account number, customer…" oninput="filterAccounts()" />
+            <select id="account-type-filter" onchange="filterAccounts()">
+              <option value="">All Types</option>
+              <option>SAVINGS</option>
+              <option>CURRENT</option>
+              <option>JOINT</option>
+              <option>SALARY</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Account No.</th>
+                  <th>Customer</th>
+                  <th>Branch</th>
+                  <th>Type</th>
+                  <th>Balance</th>
+                  <th>Opened</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="accounts-table-full"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TRANSFERS ─── -->
+    <div class="section" id="section-transfers">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Fund Transfer</div>
+          <div class="section-sub">Transfer between accounts</div>
+        </div>
+      </div>
+      <div style="max-width: 560px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">New Transfer</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>From Account ID</label>
+                <input type="number" id="tf-from" placeholder="e.g. 1" />
+              </div>
+              <div class="form-group">
+                <label>To Account ID</label>
+                <input type="number" id="tf-to" placeholder="e.g. 2" />
+              </div>
+              <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="tf-amount" placeholder="0.00" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="tf-desc" placeholder="Optional note" />
+              </div>
+            </div>
+            <div class="mt-16">
+              <button class="btn btn-primary" onclick="doTransfer()" style="width:100%">Transfer Funds →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── STATEMENTS ─── -->
+    <div class="section" id="section-statements">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Account Statement</div>
+          <div class="section-sub">Transaction history</div>
+        </div>
+      </div>
+      <div class="filter-row mb-20">
+        <input type="number" id="stmt-account-id" placeholder="Account ID" style="max-width:160px" />
+        <input type="number" id="stmt-limit" placeholder="Limit (25)" value="25" style="max-width:120px" />
+        <button class="btn btn-ghost" onclick="loadStatement()">Load Statement</button>
+      </div>
+      <div class="card" id="stmt-card" style="display:none">
+        <div class="card-header">
+          <div class="card-title" id="stmt-title">Statement</div>
+          <span class="badge badge-blue" id="stmt-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Txn ID</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Channel</th>
+                <th>Amount</th>
+                <th>Balance After</th>
+                <th>Description</th>
+                <th>Flag</th>
+              </tr>
+            </thead>
+            <tbody id="stmt-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── LOANS ─── -->
+    <div class="section" id="section-loans">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Loan Management</div>
+          <div class="section-sub">Issue and track loans</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-loan')">+ New Loan</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Principal</th>
+                <th>Rate</th>
+                <th>Tenure</th>
+                <th>Monthly EMI</th>
+                <th>Start Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="loans-table-full"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── EMIS ─── -->
+    <div class="section" id="section-emis">
+      <div class="section-header">
+        <div>
+          <div class="section-title">EMI Schedule</div>
+          <div class="section-sub">Pay installments and run cycles</div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-ghost" onclick="openModal('modal-emi-cycle')">⟳ Run Cycle</button>
+          <button class="btn btn-primary" onclick="openModal('modal-pay-emi')">Pay EMI</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>EMI ID</th>
+                <th>Loan ID</th>
+                <th>Customer</th>
+                <th>Installment</th>
+                <th>Due Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="emis-table-full"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BRANCHES ─── -->
+    <div class="section" id="section-branches">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Branch Performance</div>
+          <div class="section-sub">Portfolio analytics by branch</div>
+        </div>
+      </div>
+      <div class="grid-3" id="branches-grid"></div>
+    </div>
+
+    <!-- ─── DEFAULTERS ─── -->
+    <div class="section" id="section-defaulters">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Loan Defaulters</div>
+          <div class="section-sub">Overdue and failed installments</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>EMI ID</th>
+                <th>Loan ID</th>
+                <th>Customer</th>
+                <th>Account</th>
+                <th>Installment</th>
+                <th>Due Date</th>
+                <th>Amount</th>
+                <th>Days Overdue</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="defaulters-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- ─── MODALS ─── -->
+
+<!-- Add Customer -->
+<div class="modal-backdrop" id="modal-customer">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Customer</div>
+      <button class="modal-close" onclick="closeModal('modal-customer')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Full Name</label>
+          <input type="text" id="c-name" placeholder="e.g. Priya Sharma" />
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="text" id="c-phone" placeholder="+91 XXXXXXXXXX" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="c-email" placeholder="email@example.com" />
+        </div>
+        <div class="form-group full">
+          <label>Address</label>
+          <input type="text" id="c-address" placeholder="Full address" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-customer')">Cancel</button>
+      <button class="btn btn-primary" onclick="createCustomer()">Create Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Open Account -->
+<div class="modal-backdrop" id="modal-account">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Open Account</div>
+      <button class="modal-close" onclick="closeModal('modal-account')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Customer ID</label>
+          <input type="number" id="a-customer" placeholder="Customer ID" />
+        </div>
+        <div class="form-group">
+          <label>Branch ID</label>
+          <input type="number" id="a-branch" placeholder="Branch ID" />
+        </div>
+        <div class="form-group">
+          <label>Account Type</label>
+          <select id="a-type">
+            <option>SAVINGS</option>
+            <option>CURRENT</option>
+            <option>JOINT</option>
+            <option>SALARY</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Initial Deposit (₹)</label>
+          <input type="number" id="a-deposit" placeholder="0.00" step="0.01" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancel</button>
+      <button class="btn btn-primary" onclick="createAccount()">Open Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Loan -->
+<div class="modal-backdrop" id="modal-loan">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Issue Loan</div>
+      <button class="modal-close" onclick="closeModal('modal-loan')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Customer ID</label>
+          <input type="number" id="l-customer" placeholder="Customer ID" />
+        </div>
+        <div class="form-group">
+          <label>Account ID</label>
+          <input type="number" id="l-account" placeholder="Account ID" />
+        </div>
+        <div class="form-group">
+          <label>Branch ID</label>
+          <input type="number" id="l-branch" placeholder="Branch ID" />
+        </div>
+        <div class="form-group">
+          <label>Loan Type</label>
+          <select id="l-type">
+            <option>HOME</option>
+            <option>PERSONAL</option>
+            <option>EDUCATION</option>
+            <option>VEHICLE</option>
+            <option>BUSINESS</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Principal Amount (₹)</label>
+          <input type="number" id="l-principal" placeholder="500000" step="1000" />
+        </div>
+        <div class="form-group">
+          <label>Interest Rate (% p.a.)</label>
+          <input type="number" id="l-rate" placeholder="9.5" step="0.1" />
+        </div>
+        <div class="form-group">
+          <label>Tenure (months)</label>
+          <input type="number" id="l-tenure" placeholder="120" />
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="l-date" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-loan')">Cancel</button>
+      <button class="btn btn-primary" onclick="createLoan()">Issue Loan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pay EMI -->
+<div class="modal-backdrop" id="modal-pay-emi">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <div class="modal-title">Pay EMI</div>
+      <button class="modal-close" onclick="closeModal('modal-pay-emi')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>EMI ID</label>
+        <input type="number" id="emi-id" placeholder="EMI Installment ID" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pay-emi')">Cancel</button>
+      <button class="btn btn-primary" onclick="payEmi()">Pay Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Run EMI Cycle -->
+<div class="modal-backdrop" id="modal-emi-cycle">
+  <div class="modal" style="max-width: 420px;">
+    <div class="modal-header">
+      <div class="modal-title">Run EMI Cycle</div>
+      <button class="modal-close" onclick="closeModal('modal-emi-cycle')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Loan ID (Optional)</label>
+        <input type="number" id="cycle-loan-id" placeholder="Leave blank to process all due EMIs" />
+      </div>
+      <p style="font-size:12px;color:var(--text-3);margin-top:12px;">
+        This will auto-deduct due EMIs. Enter a loan ID to run the cycle for one loan only, or leave it blank to process every due installment.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-emi-cycle')">Cancel</button>
+      <button class="btn btn-primary" onclick="runCycle()">Run Cycle</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+// ─── STATE ───
+let dashboardData = null;
+let currentSection = 'dashboard';
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dashboard-date').textContent =
+    new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
+  resetConcurrencyResult();
+  loadDashboard();
+});
+
+// ─── NAVIGATION ───
+function navigate(section) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  document.getElementById('section-' + section).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().includes(sectionLabel(section))) {
+      n.classList.add('active');
+    }
+  });
+
+  currentSection = section;
+  const titles = {
+    dashboard: 'Dashboard', customers: 'Customers', accounts: 'Accounts',
+    transfers: 'Fund Transfer', statements: 'Statement', loans: 'Loans',
+    emis: 'EMI Schedule', branches: 'Branch Performance', defaulters: 'Defaulters'
+  };
+  document.getElementById('page-title').textContent = titles[section] || section;
+
+  const actionLabels = {
+    dashboard: '+ New Customer', customers: '+ Add Customer', accounts: '+ Open Account',
+    loans: '+ New Loan', emis: 'Pay EMI', transfers: '', statements: '', branches: '', defaulters: ''
+  };
+  const btn = document.getElementById('primary-action');
+  btn.textContent = actionLabels[section] || '';
+  btn.style.display = actionLabels[section] ? 'inline-flex' : 'none';
+
+  if (section === 'branches') loadBranches();
+  if (section === 'defaulters') loadDefaulters();
+  if (section === 'customers' && dashboardData) renderCustomers();
+  if (section === 'accounts' && dashboardData) renderAccountsFull();
+  if (section === 'loans' && dashboardData) renderLoansFull();
+  if (section === 'emis' && dashboardData) renderEmisFull();
+}
+
+function sectionLabel(s) {
+  const map = {
+    dashboard: 'dashboard', customers: 'customer', accounts: 'account',
+    transfers: 'transfer', statements: 'statement', loans: 'loan',
+    emis: 'emi', branches: 'branch', defaulters: 'defaulter'
+  };
+  return map[s] || s;
+}
+
+function showPrimaryModal() {
+  const modals = {
+    dashboard: 'modal-customer', customers: 'modal-customer',
+    accounts: 'modal-account', loans: 'modal-loan', emis: 'modal-pay-emi'
+  };
+  const m = modals[currentSection];
+  if (m) openModal(m);
+}
+
+function applyDashboardData(data) {
+  dashboardData = data;
+  renderDashboard(data);
+  if (currentSection === 'customers') renderCustomers();
+  if (currentSection === 'accounts') renderAccountsFull();
+  if (currentSection === 'loans') renderLoansFull();
+  if (currentSection === 'emis') renderEmisFull();
+}
+
+function resetConcurrencyResult() {
+  document.getElementById('concurrency-status').textContent = 'Ready';
+  document.getElementById('concurrency-summary').textContent =
+    'Run the demo to compare the naive race condition with the serialized withdrawal flow.';
+  document.getElementById('concurrency-table').innerHTML = emptyRow(5, 'No demo run yet');
+}
+
+function renderConcurrencyResult(result) {
+  const rows = [
+    { label: 'Naive', data: result.naive },
+    { label: 'Safe', data: result.safe },
+  ];
+
+  document.getElementById('concurrency-status').textContent = 'Completed';
+  document.getElementById('concurrency-summary').innerHTML =
+    `Account #${esc(result.account_id)} compared with a withdrawal amount of ${formatCurrency(result.naive.withdraw_amount)}.`;
+  document.getElementById('concurrency-table').innerHTML = rows.map(({ label, data }) => `<tr>
+      <td class="td-primary">${label}</td>
+      <td>${data.successful_withdrawals}</td>
+      <td class="td-primary">${formatCurrency(data.final_balance)}</td>
+      <td>${formatCurrency(data.ledger_balance_from_successful_events)}</td>
+      <td>${data.lost_update_detected ? '<span class="badge badge-red">Detected</span>' : '<span class="badge badge-green">Prevented</span>'}</td>
+    </tr>`).join('');
+}
+
+// ─── DASHBOARD ───
+async function loadDashboard() {
+  const data = await apiGet('/api/dashboard');
+  if (!data) return;
+  applyDashboardData(data);
+}
+
+function refreshDashboard() {
+  loadDashboard();
+  if (currentSection === 'branches') loadBranches();
+  if (currentSection === 'defaulters') loadDefaulters();
+}
+
+async function resetDemoData() {
+  const data = await apiPost('/api/reset-demo', {});
+  if (!data) return;
+
+  applyDashboardData(data);
+  document.getElementById('stmt-card').style.display = 'none';
+  resetConcurrencyResult();
+  clearInputs(['emi-id', 'cycle-loan-id', 'stmt-account-id', 'stmt-limit']);
+  document.getElementById('stmt-limit').value = 25;
+  toast('Database reset to seed data', 'success');
+
+  if (currentSection === 'branches') loadBranches();
+  if (currentSection === 'defaulters') loadDefaulters();
+}
+
+async function runConcurrencyDemo() {
+  document.getElementById('concurrency-status').textContent = 'Running';
+  const result = await apiPost('/api/concurrency-demo', { amount: 1000 });
+  if (!result) {
+    document.getElementById('concurrency-status').textContent = 'Error';
+    return;
+  }
+
+  renderConcurrencyResult(result);
+  toast('Concurrency demo completed', 'success');
+}
+
+function renderDashboard(data) {
+  const m = data.metrics;
+  document.getElementById('m-customers').textContent = m.total_customers;
+  document.getElementById('m-accounts').textContent = m.total_accounts;
+  document.getElementById('m-deposits').textContent = formatCurrency(m.total_deposits);
+  document.getElementById('m-loans').textContent = m.active_loans;
+  document.getElementById('m-overdue').textContent = m.overdue_emis;
+  document.getElementById('m-suspicious').textContent = m.suspicious_transactions;
+  document.getElementById('m-fds').textContent = m.active_fixed_deposits;
+
+  // EMI table
+  const emis = data.pending_emis || [];
+  document.getElementById('emi-count-badge').textContent = emis.length + ' upcoming';
+  document.getElementById('emi-table').innerHTML = emis.length
+    ? emis.map(e => `<tr>
+        <td class="td-primary">${esc(e.customer_name)}</td>
+        <td class="td-mono">#${e.loan_id}</td>
+        <td>${formatDate(e.due_date)}</td>
+        <td class="td-primary">${formatCurrency(e.amount)}</td>
+        <td>${statusBadge(e.status)}</td>
+      </tr>`).join('')
+    : emptyRow(5);
+
+  // Recent accounts (first 6)
+  const accs = (data.accounts || []).slice(0, 6);
+  document.getElementById('accounts-table-dash').innerHTML = accs.length
+    ? accs.map(a => `<tr>
+        <td class="td-mono td-primary">${esc(a.account_number)}</td>
+        <td>${esc(a.primary_customer)}</td>
+        <td>${typeBadge(a.account_type)}</td>
+        <td class="td-primary">${formatCurrency(a.balance)}</td>
+        <td>${statusBadge(a.status)}</td>
+      </tr>`).join('')
+    : emptyRow(5);
+
+  // Loans
+  const loans = data.loans || [];
+  document.getElementById('loans-table-dash').innerHTML = loans.length
+    ? loans.map(l => `<tr>
+        <td class="td-mono">#${l.loan_id}</td>
+        <td class="td-primary">${esc(l.customer_name)}</td>
+        <td>${loanTypeBadge(l.loan_type)}</td>
+        <td class="td-primary">${formatCurrency(l.principal_amount)}</td>
+        <td>${l.interest_rate}%</td>
+        <td>${l.tenure_months} mo</td>
+        <td>${formatCurrency(l.monthly_emi)}</td>
+        <td>${statusBadge(l.status)}</td>
+      </tr>`).join('')
+    : emptyRow(8);
+}
+
+// ─── CUSTOMERS ───
+function renderCustomers() {
+  const customers = dashboardData?.customers || [];
+  const q = document.getElementById('customer-search')?.value?.toLowerCase() || '';
+  const filtered = customers.filter(c =>
+    c.full_name.toLowerCase().includes(q) || c.phone.includes(q) || (c.email || '').toLowerCase().includes(q)
+  );
+  document.getElementById('customers-table').innerHTML = filtered.length
+    ? filtered.map(c => `<tr>
+        <td class="td-mono" style="color:var(--text-3)">${c.customer_id}</td>
+        <td class="td-primary">${esc(c.full_name)}</td>
+        <td class="td-mono">${esc(c.phone)}</td>
+        <td>${esc(c.email || '—')}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${esc(c.address)}</td>
+        <td>${formatDate(c.created_at?.split('T')[0])}</td>
+      </tr>`).join('')
+    : emptyRow(6, 'No customers found');
+}
+
+function filterCustomers() { renderCustomers(); }
+
+async function createCustomer() {
+  const payload = {
+    full_name: document.getElementById('c-name').value,
+    phone: document.getElementById('c-phone').value,
+    email: document.getElementById('c-email').value,
+    address: document.getElementById('c-address').value,
+  };
+  if (!payload.full_name || !payload.phone || !payload.address) {
+    return toast('Please fill all required fields', 'error');
+  }
+  const res = await apiPost('/api/customers', payload);
+  if (res) {
+    toast('Customer created successfully', 'success');
+    closeModal('modal-customer');
+    clearInputs(['c-name','c-phone','c-email','c-address']);
+    await loadDashboard();
+    navigate('customers');
+  }
+}
+
+// ─── ACCOUNTS ───
+function renderAccountsFull() {
+  const accounts = dashboardData?.accounts || [];
+  const q = document.getElementById('account-search')?.value?.toLowerCase() || '';
+  const typeF = document.getElementById('account-type-filter')?.value || '';
+  const filtered = accounts.filter(a =>
+    (a.account_number.toLowerCase().includes(q) || a.primary_customer.toLowerCase().includes(q)) &&
+    (!typeF || a.account_type === typeF)
+  );
+  document.getElementById('accounts-table-full').innerHTML = filtered.length
+    ? filtered.map(a => `<tr>
+        <td class="td-mono td-primary">${esc(a.account_number)}</td>
+        <td>${esc(a.primary_customer)}</td>
+        <td><span style="font-size:12px;color:var(--text-3)">${esc(a.branch_code)}</span></td>
+        <td>${typeBadge(a.account_type)}</td>
+        <td class="td-primary">${formatCurrency(a.balance)}</td>
+        <td>${formatDate(a.opened_on)}</td>
+        <td>${statusBadge(a.status)}</td>
+      </tr>`).join('')
+    : emptyRow(7, 'No accounts found');
+}
+
+function filterAccounts() { renderAccountsFull(); }
+
+async function createAccount() {
+  const payload = {
+    primary_customer_id: +document.getElementById('a-customer').value,
+    branch_id: +document.getElementById('a-branch').value,
+    account_type: document.getElementById('a-type').value,
+    opening_balance: +document.getElementById('a-deposit').value || 0,
+  };
+  if (!payload.primary_customer_id || !payload.branch_id) {
+    return toast('Customer ID and Branch ID are required', 'error');
+  }
+  const res = await apiPost('/api/accounts', payload);
+  if (res) {
+    toast('Account opened: ' + res.account_number, 'success');
+    closeModal('modal-account');
+    clearInputs(['a-customer','a-branch','a-deposit']);
+    await loadDashboard();
+  }
+}
+
+// ─── LOANS ───
+function renderLoansFull() {
+  const loans = dashboardData?.loans || [];
+  document.getElementById('loans-table-full').innerHTML = loans.length
+    ? loans.map(l => `<tr>
+        <td class="td-mono">#${l.loan_id}</td>
+        <td class="td-primary">${esc(l.customer_name)}</td>
+        <td class="td-mono" style="font-size:12px;color:var(--text-3)">${esc(l.account_number)}</td>
+        <td>${loanTypeBadge(l.loan_type)}</td>
+        <td class="td-primary">${formatCurrency(l.principal_amount)}</td>
+        <td>${l.interest_rate}%</td>
+        <td>${l.tenure_months} mo</td>
+        <td class="td-primary">${formatCurrency(l.monthly_emi)}</td>
+        <td>${formatDate(l.start_date)}</td>
+        <td>${statusBadge(l.status)}</td>
+      </tr>`).join('')
+    : emptyRow(10);
+}
+
+async function createLoan() {
+  const payload = {
+    customer_id: +document.getElementById('l-customer').value,
+    account_id: +document.getElementById('l-account').value,
+    branch_id: +document.getElementById('l-branch').value,
+    loan_type: document.getElementById('l-type').value,
+    principal_amount: +document.getElementById('l-principal').value,
+    interest_rate: +document.getElementById('l-rate').value,
+    tenure_months: +document.getElementById('l-tenure').value,
+    start_date: document.getElementById('l-date').value,
+  };
+  if (!payload.customer_id || !payload.account_id || !payload.branch_id || !payload.principal_amount || !payload.tenure_months || !payload.start_date) {
+    return toast('Fill all required loan fields', 'error');
+  }
+  const res = await apiPost('/api/loans', payload);
+  if (res) {
+    toast(`Loan #${res.loan_id} issued — EMI: ${formatCurrency(res.monthly_emi)}/mo`, 'success');
+    closeModal('modal-loan');
+    clearInputs(['l-customer', 'l-account', 'l-branch', 'l-principal', 'l-rate', 'l-tenure']);
+    document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
+    await loadDashboard();
+    navigate('loans');
+  }
+}
+
+// ─── EMIS ───
+function renderEmisFull() {
+  const emis = dashboardData?.emis || [];
+  document.getElementById('emis-table-full').innerHTML = emis.length
+    ? emis.map(e => `<tr>
+        <td class="td-mono">#${e.emi_id}</td>
+        <td class="td-mono">#${e.loan_id}</td>
+        <td class="td-primary">${esc(e.customer_name)}</td>
+        <td>${e.installment_no}</td>
+        <td>${formatDate(e.due_date)}</td>
+        <td class="td-primary">${formatCurrency(e.amount)}</td>
+        <td>${statusBadge(e.status)}</td>
+      </tr>`).join('')
+    : emptyRow(7);
+}
+
+async function payEmi() {
+  const emi_id = +document.getElementById('emi-id').value;
+  if (!emi_id) return toast('Enter a valid EMI ID', 'error');
+  const res = await apiPost('/api/emis/pay', { emi_id });
+  if (res) {
+    toast(`EMI #${emi_id} paid successfully`, 'success');
+    closeModal('modal-pay-emi');
+    clearInputs(['emi-id']);
+    await loadDashboard();
+    renderEmisFull();
+  }
+}
+
+async function runCycle() {
+  const loanIdValue = document.getElementById('cycle-loan-id').value.trim();
+  const payload = loanIdValue ? { loan_id: +loanIdValue } : {};
+  const res = await apiPost('/api/emis/run-cycle', payload);
+  if (res) {
+    const scope = res.loan_id ? `Loan #${res.loan_id}` : 'EMI cycle';
+    toast(`${scope} complete — ${res.paid_count} paid, ${res.failed_count} failed`, 'success');
+    closeModal('modal-emi-cycle');
+    clearInputs(['cycle-loan-id']);
+    await loadDashboard();
+    if (currentSection === 'defaulters') loadDefaulters();
+  }
+}
+
+// ─── TRANSFERS ───
+async function doTransfer() {
+  const payload = {
+    from_account_id: +document.getElementById('tf-from').value,
+    to_account_id: +document.getElementById('tf-to').value,
+    amount: +document.getElementById('tf-amount').value,
+    description: document.getElementById('tf-desc').value,
+  };
+  if (!payload.from_account_id || !payload.to_account_id || !payload.amount) {
+    return toast('Fill all required fields', 'error');
+  }
+  const res = await apiPost('/api/transfers', payload);
+  if (res) {
+    toast(`Transfer complete — ₹${payload.amount.toLocaleString('en-IN')} sent`, 'success');
+    clearInputs(['tf-from','tf-to','tf-amount','tf-desc']);
+    await loadDashboard();
+  }
+}
+
+// ─── STATEMENTS ───
+async function loadStatement() {
+  const account_id = +document.getElementById('stmt-account-id').value;
+  const limit = +document.getElementById('stmt-limit').value || 25;
+  if (!account_id) return toast('Enter account ID', 'error');
+
+  const data = await apiGet(`/api/statements?account_id=${account_id}&limit=${limit}`);
+  if (!data) return;
+
+  document.getElementById('stmt-card').style.display = 'block';
+  const txns = Array.isArray(data) ? data : (data.transactions || []);
+  document.getElementById('stmt-title').textContent = `Account #${account_id}`;
+  document.getElementById('stmt-count').textContent = txns.length + ' transactions';
+
+  document.getElementById('stmt-table').innerHTML = txns.length
+    ? txns.map(t => `<tr>
+        <td class="td-mono">#${t.txn_id}</td>
+        <td>${formatDate(t.created_at?.split('T')[0] || t.created_at)}</td>
+        <td>${txnTypeBadge(t.txn_type)}</td>
+        <td><span class="badge badge-gray">${t.channel}</span></td>
+        <td class="td-primary ${t.txn_type==='CREDIT'||t.txn_type==='LOAN_DISBURSAL'?'amount-positive':'amount-negative'}">${formatCurrency(t.amount)}</td>
+        <td>${formatCurrency(t.balance_after)}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;color:var(--text-3)">${esc(t.description || '—')}</td>
+        <td>${t.suspicious_flag ? '<span class="badge badge-red">⚠ Suspicious</span>' : '<span style="color:var(--text-3);font-size:12px">—</span>'}</td>
+      </tr>`).join('')
+    : emptyRow(8, 'No transactions found');
+}
+
+// ─── BRANCHES ───
+async function loadBranches() {
+  const data = await apiGet('/api/views/branch-performance');
+  if (!data) return;
+
+  const branches = data.branches || data;
+  document.getElementById('branches-grid').innerHTML = branches.map(b => `
+    <div class="branch-card">
+      <div class="branch-name">${esc(b.branch_name)}</div>
+      <div class="branch-meta">${esc(b.branch_code)} · ${esc(b.city)}</div>
+      <div class="branch-stats">
+        <div class="bs">
+          <div class="bs-value" style="color:var(--blue)">${b.total_accounts}</div>
+          <div class="bs-label">Accounts</div>
+        </div>
+        <div class="bs">
+          <div class="bs-value" style="color:var(--green)">${formatCurrencyShort(b.total_deposits)}</div>
+          <div class="bs-label">Deposits</div>
+        </div>
+        <div class="bs">
+          <div class="bs-value" style="color:var(--amber)">${b.total_loans}</div>
+          <div class="bs-label">Loans</div>
+        </div>
+      </div>
+      <div class="divider" style="margin:14px 0 10px"></div>
+      <div class="info-row" style="padding:0">
+        <span class="info-label" style="font-size:12px">Loan Portfolio</span>
+        <span class="info-value" style="font-size:13px">${formatCurrencyShort(b.active_loan_portfolio)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── DEFAULTERS ───
+async function loadDefaulters() {
+  const data = await apiGet('/api/views/defaulters');
+  if (!data) return;
+
+  const defaulters = data.defaulters || data;
+  document.getElementById('defaulters-table').innerHTML = defaulters.length
+    ? defaulters.map(d => `<tr>
+        <td class="td-mono">#${d.emi_id}</td>
+        <td class="td-mono">#${d.loan_id}</td>
+        <td class="td-primary">${esc(d.customer_name)}</td>
+        <td class="td-mono" style="font-size:12px">${esc(d.account_number)}</td>
+        <td>${d.installment_no}</td>
+        <td>${formatDate(d.due_date)}</td>
+        <td class="td-primary amount-negative">${formatCurrency(d.amount)}</td>
+        <td><span class="badge badge-red">${d.days_overdue} days</span></td>
+        <td>${statusBadge(d.status)}</td>
+      </tr>`).join('')
+    : emptyRow(9, '✓ No defaulters');
+}
+
+// ─── API ───
+async function readApiResponse(res) {
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error('Invalid server response');
+  }
+}
+
+async function apiGet(url) {
+  try {
+    const res = await fetch(url);
+    const data = await readApiResponse(res);
+    if (!res.ok || data?.error) {
+      toast(data?.error || 'Request failed', 'error');
+      return null;
+    }
+    return data;
+  } catch (e) {
+    toast(e.message || 'Network error', 'error');
+    return null;
+  }
+}
+
+async function apiPost(url, payload) {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await readApiResponse(res);
+    if (!res.ok || data?.error) {
+      toast(data?.error || 'Request failed', 'error');
+      return null;
+    }
+    return data;
+  } catch (e) {
+    toast(e.message || 'Network error', 'error');
+    return null;
+  }
+}
+
+// ─── MODAL ───
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-backdrop')) {
+    e.target.classList.remove('open');
+  }
+});
+
+// ─── TOAST ───
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${esc(msg)}`;
+  const container = document.getElementById('toast-container');
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ─── HELPERS ───
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatCurrency(n) {
+  if (n == null) return '—';
+  return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatCurrencyShort(n) {
+  if (n == null || n === 0) return '₹0';
+  if (n >= 1e7) return '₹' + (n / 1e7).toFixed(1) + 'Cr';
+  if (n >= 1e5) return '₹' + (n / 1e5).toFixed(1) + 'L';
+  if (n >= 1e3) return '₹' + (n / 1e3).toFixed(1) + 'K';
+  return '₹' + n;
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  const date = new Date(d);
+  if (isNaN(date)) return d;
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function statusBadge(s) {
+  const map = {
+    ACTIVE: 'badge-green', PAID: 'badge-green', SUCCESS: 'badge-green',
+    PENDING: 'badge-blue', FROZEN: 'badge-amber', OVERDUE: 'badge-red',
+    FAILED: 'badge-red', CLOSED: 'badge-gray', DEFAULTED: 'badge-red',
+  };
+  return `<span class="badge ${map[s] || 'badge-gray'}">${s}</span>`;
+}
+
+function typeBadge(t) {
+  const map = { SAVINGS: 'badge-green', CURRENT: 'badge-blue', JOINT: 'badge-gold', SALARY: 'badge-amber' };
+  return `<span class="badge ${map[t] || 'badge-gray'}">${t}</span>`;
+}
+
+function loanTypeBadge(t) {
+  const map = { HOME: 'badge-blue', PERSONAL: 'badge-gold', EDUCATION: 'badge-green', VEHICLE: 'badge-amber', BUSINESS: 'badge-blue' };
+  return `<span class="badge ${map[t] || 'badge-gray'}">${t}</span>`;
+}
+
+function txnTypeBadge(t) {
+  const map = {
+    CREDIT: 'badge-green', DEBIT: 'badge-red', EMI: 'badge-amber',
+    ATM_WITHDRAWAL: 'badge-red', FD_DEPOSIT: 'badge-blue', LOAN_DISBURSAL: 'badge-gold'
+  };
+  return `<span class="badge ${map[t] || 'badge-gray'}">${t?.replace('_',' ')}</span>`;
+}
+
+function emptyRow(cols, msg = 'No data') {
+  return `<tr><td colspan="${cols}" style="text-align:center;padding:40px;color:var(--text-3)">${msg}</td></tr>`;
+}
+
+function clearInputs(ids) {
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+}
+</script>
+</body>
+</html>
