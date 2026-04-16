@@ -760,7 +760,7 @@
 
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Active Loans</div>
+          <div class="card-title">Loan Portfolio</div>
         </div>
         <div class="table-wrap">
           <table>
@@ -785,15 +785,34 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">DBMS Operations</div>
+            <span class="badge badge-blue" id="failure-status">Ready</span>
           </div>
           <div class="card-body">
             <div class="flex gap-8" style="flex-wrap: wrap;">
               <button class="btn btn-ghost" onclick="runConcurrencyDemo()">Run Concurrency Demo</button>
+              <button class="btn btn-ghost" onclick="runFailedTransferDemo()">Simulate Failed Transfer</button>
               <button class="btn btn-danger" onclick="resetDemoData()">Reset Seed Data</button>
             </div>
             <p style="margin-top: 14px; color: var(--text-2); line-height: 1.6;">
-              Use these controls to demonstrate lost-update prevention and to restore the seeded dataset before another run.
+              Use these controls to demonstrate lost-update prevention, rollback after a simulated crash, and to restore the seeded dataset before another run.
             </p>
+            <div id="failure-summary" style="margin-top: 14px; color: var(--text-2); line-height: 1.6;">
+              Run the failed transfer demo to prove that the debit is rolled back if the credit never happens.
+            </div>
+            <div class="table-wrap mt-16">
+              <table>
+                <thead>
+                  <tr>
+                    <th>From Balance</th>
+                    <th>After Rollback</th>
+                    <th>To Balance</th>
+                    <th>After Rollback</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="failure-table"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -980,9 +999,9 @@
       <div class="section-header">
         <div>
           <div class="section-title">Loan Management</div>
-          <div class="section-sub">Issue and track loans</div>
+          <div class="section-sub">Submit, approve, and track loans</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('modal-loan')">+ New Loan</button>
+        <button class="btn btn-primary" onclick="openModal('modal-loan')">+ New Application</button>
       </div>
       <div class="card">
         <div class="table-wrap">
@@ -999,6 +1018,7 @@
                 <th>Monthly EMI</th>
                 <th>Start Date</th>
                 <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="loans-table-full"></tbody>
@@ -1162,7 +1182,7 @@
 <div class="modal-backdrop" id="modal-loan">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Issue Loan</div>
+      <div class="modal-title">Create Loan Application</div>
       <button class="modal-close" onclick="closeModal('modal-loan')">✕</button>
     </div>
     <div class="modal-body">
@@ -1209,7 +1229,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-loan')">Cancel</button>
-      <button class="btn btn-primary" onclick="createLoan()">Issue Loan</button>
+      <button class="btn btn-primary" onclick="createLoan()">Submit Application</button>
     </div>
   </div>
 </div>
@@ -1270,6 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('dashboard-date').textContent =
     new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
+  resetFailureResult();
   resetConcurrencyResult();
   loadDashboard();
 });
@@ -1296,7 +1317,7 @@ function navigate(section) {
 
   const actionLabels = {
     dashboard: '+ New Customer', customers: '+ Add Customer', accounts: '+ Open Account',
-    loans: '+ New Loan', emis: 'Pay EMI', transfers: '', statements: '', branches: '', defaulters: ''
+    loans: '+ New Application', emis: 'Pay EMI', transfers: '', statements: '', branches: '', defaulters: ''
   };
   const btn = document.getElementById('primary-action');
   btn.textContent = actionLabels[section] || '';
@@ -1335,6 +1356,26 @@ function applyDashboardData(data) {
   if (currentSection === 'accounts') renderAccountsFull();
   if (currentSection === 'loans') renderLoansFull();
   if (currentSection === 'emis') renderEmisFull();
+}
+
+function resetFailureResult() {
+  document.getElementById('failure-status').textContent = 'Ready';
+  document.getElementById('failure-summary').textContent =
+    'Run the failed transfer demo to prove that the debit is rolled back if the credit never happens.';
+  document.getElementById('failure-table').innerHTML = emptyRow(5, 'No rollback demo run yet');
+}
+
+function renderFailureResult(result) {
+  document.getElementById('failure-status').textContent = result.rollback_preserved_balances ? 'Rolled Back' : 'Check';
+  document.getElementById('failure-summary').innerHTML =
+    `Transfer of ${formatCurrency(result.amount)} from account #${esc(result.from_account_id)} to #${esc(result.to_account_id)} was interrupted after the debit step.`;
+  document.getElementById('failure-table').innerHTML = `<tr>
+      <td class="td-primary">${formatCurrency(result.before_from_balance)}</td>
+      <td>${formatCurrency(result.after_from_balance)}</td>
+      <td class="td-primary">${formatCurrency(result.before_to_balance)}</td>
+      <td>${formatCurrency(result.after_to_balance)}</td>
+      <td>${result.rollback_preserved_balances ? '<span class="badge badge-green">Rollback Safe</span>' : '<span class="badge badge-red">Mismatch</span>'}</td>
+    </tr>`;
 }
 
 function resetConcurrencyResult() {
@@ -1381,6 +1422,7 @@ async function resetDemoData() {
 
   applyDashboardData(data);
   document.getElementById('stmt-card').style.display = 'none';
+  resetFailureResult();
   resetConcurrencyResult();
   clearInputs(['emi-id', 'cycle-loan-id', 'stmt-account-id', 'stmt-limit']);
   document.getElementById('stmt-limit').value = 25;
@@ -1400,6 +1442,22 @@ async function runConcurrencyDemo() {
 
   renderConcurrencyResult(result);
   toast('Concurrency demo completed', 'success');
+}
+
+async function runFailedTransferDemo() {
+  document.getElementById('failure-status').textContent = 'Running';
+  const result = await apiPost('/api/transfers/simulate-failure', {
+    from_account_id: 1,
+    to_account_id: 2,
+    amount: 500,
+  });
+  if (!result) {
+    document.getElementById('failure-status').textContent = 'Error';
+    return;
+  }
+
+  renderFailureResult(result);
+  toast('Rollback demo completed', 'success');
 }
 
 function renderDashboard(data) {
@@ -1552,8 +1610,9 @@ function renderLoansFull() {
         <td class="td-primary">${formatCurrency(l.monthly_emi)}</td>
         <td>${formatDate(l.start_date)}</td>
         <td>${statusBadge(l.status)}</td>
+        <td>${l.status === 'PENDING' ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px" onclick="approveLoan(${l.loan_id})">Approve</button>` : '<span style="color:var(--text-3);font-size:12px">—</span>'}</td>
       </tr>`).join('')
-    : emptyRow(10);
+    : emptyRow(11);
 }
 
 async function createLoan() {
@@ -1572,10 +1631,19 @@ async function createLoan() {
   }
   const res = await apiPost('/api/loans', payload);
   if (res) {
-    toast(`Loan #${res.loan_id} issued — EMI: ${formatCurrency(res.monthly_emi)}/mo`, 'success');
+    toast(`Loan #${res.loan_id} submitted for approval`, 'success');
     closeModal('modal-loan');
     clearInputs(['l-customer', 'l-account', 'l-branch', 'l-principal', 'l-rate', 'l-tenure']);
     document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
+    await loadDashboard();
+    navigate('loans');
+  }
+}
+
+async function approveLoan(loanId) {
+  const res = await apiPost('/api/loans/approve', { loan_id: loanId });
+  if (res) {
+    toast(`Loan #${loanId} approved and disbursed`, 'success');
     await loadDashboard();
     navigate('loans');
   }

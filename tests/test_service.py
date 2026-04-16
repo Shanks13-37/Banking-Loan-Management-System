@@ -70,7 +70,7 @@ class BankingServiceTests(unittest.TestCase):
         self.assertEqual(from_balance, 6800)
         self.assertEqual(to_balance, 42000)
 
-    def test_create_loan_generates_emi_schedule_and_disburses_amount(self) -> None:
+    def test_create_loan_creates_pending_application(self) -> None:
         result = self.service.create_loan(
             {
                 "customer_id": 3,
@@ -85,6 +85,10 @@ class BankingServiceTests(unittest.TestCase):
         )
 
         with self.service._connect() as connection:
+            loan_status = connection.execute(
+                "SELECT status FROM loans WHERE loan_id = ?",
+                (result["loan_id"],),
+            ).fetchone()[0]
             emi_count = connection.execute(
                 "SELECT COUNT(*) FROM emis WHERE loan_id = ?",
                 (result["loan_id"],),
@@ -93,6 +97,43 @@ class BankingServiceTests(unittest.TestCase):
                 "SELECT balance FROM accounts WHERE account_id = 3"
             ).fetchone()[0]
 
+        self.assertEqual(loan_status, "PENDING")
+        self.assertEqual(emi_count, 0)
+        self.assertEqual(account_balance, 6800)
+        self.assertGreater(result["monthly_emi"], 0)
+        self.assertEqual(result["status"], "PENDING")
+
+    def test_approve_loan_disburses_amount_and_generates_emi_schedule(self) -> None:
+        application = self.service.create_loan(
+            {
+                "customer_id": 3,
+                "account_id": 3,
+                "branch_id": 3,
+                "principal_amount": 120000,
+                "interest_rate": 12,
+                "tenure_months": 6,
+                "start_date": "2026-04-16",
+                "loan_type": "EDUCATION",
+            }
+        )
+
+        result = self.service.approve_loan({"loan_id": application["loan_id"]})
+
+        with self.service._connect() as connection:
+            emi_count = connection.execute(
+                "SELECT COUNT(*) FROM emis WHERE loan_id = ?",
+                (application["loan_id"],),
+            ).fetchone()[0]
+            account_balance = connection.execute(
+                "SELECT balance FROM accounts WHERE account_id = 3"
+            ).fetchone()[0]
+            loan_status = connection.execute(
+                "SELECT status FROM loans WHERE loan_id = ?",
+                (application["loan_id"],),
+            ).fetchone()[0]
+
+        self.assertEqual(result["status"], "ACTIVE")
+        self.assertEqual(loan_status, "ACTIVE")
         self.assertEqual(emi_count, 6)
         self.assertEqual(account_balance, 126800)
         self.assertGreater(result["monthly_emi"], 0)
@@ -143,6 +184,24 @@ class BankingServiceTests(unittest.TestCase):
 
         self.assertIn("metrics", summary)
         self.assertTrue(self.db_path.exists())
+
+    def test_simulated_failed_transfer_rolls_back_balances(self) -> None:
+        result = self.service.simulate_failed_transfer(
+            {"from_account_id": 1, "to_account_id": 2, "amount": 500}
+        )
+
+        with self.service._connect() as connection:
+            from_balance = connection.execute(
+                "SELECT balance FROM accounts WHERE account_id = 1"
+            ).fetchone()[0]
+            to_balance = connection.execute(
+                "SELECT balance FROM accounts WHERE account_id = 2"
+            ).fetchone()[0]
+
+        self.assertTrue(result["rollback_preserved_balances"])
+        self.assertEqual(from_balance, 95000)
+        self.assertEqual(to_balance, 42000)
+        self.assertIn("Simulated crash", result["message"])
 
     def test_concurrency_demo_shows_naive_race_and_safe_serialization(self) -> None:
         result = self.service.simulate_concurrency({"amount": 1000})

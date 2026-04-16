@@ -76,6 +76,50 @@ class BankingService:
         )
         return int(cursor.lastrowid)
 
+    def _loan_snapshot(self, connection, loan_id: int) -> dict[str, Any]:
+        loan = self._fetch_one(
+            connection,
+            """
+            SELECT
+                l.loan_id,
+                l.customer_id,
+                l.account_id,
+                l.branch_id,
+                l.loan_type,
+                l.principal_amount,
+                l.interest_rate,
+                l.tenure_months,
+                l.monthly_emi,
+                l.start_date,
+                l.status,
+                c.full_name AS customer_name,
+                a.account_number,
+                a.primary_customer_id,
+                a.status AS account_status
+            FROM loans AS l
+            JOIN customers AS c
+                ON c.customer_id = l.customer_id
+            JOIN accounts AS a
+                ON a.account_id = l.account_id
+            WHERE l.loan_id = ?
+            """,
+            (loan_id,),
+        )
+        if loan is None:
+            raise ValueError("Loan not found.")
+        return loan
+
+    def _create_emi_schedule(self, connection, *, loan_id: int, start_date: date, tenure_months: int, monthly_emi: float) -> None:
+        for installment_no in range(1, tenure_months + 1):
+            due_date = self._add_months(start_date, installment_no).isoformat()
+            connection.execute(
+                """
+                INSERT INTO emis (loan_id, installment_no, due_date, amount, status)
+                VALUES (?, ?, ?, ?, 'PENDING')
+                """,
+                (loan_id, installment_no, due_date, monthly_emi),
+            )
+
     def _calculate_emi(self, principal_amount: float, interest_rate: float, tenure_months: int) -> float:
         monthly_rate = interest_rate / 1200
         if monthly_rate == 0:
@@ -492,6 +536,72 @@ class BankingService:
                 "to_balance": updated_to["balance"],
             }
 
+    def simulate_failed_transfer(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = payload or {}
+        from_account_id = int(payload.get("from_account_id", 1))
+        to_account_id = int(payload.get("to_account_id", 2))
+        amount = round(float(payload.get("amount", 500)), 2)
+
+        if from_account_id == to_account_id:
+            raise ValueError("Source and destination accounts must be different.")
+        if amount <= 0:
+            raise ValueError("Transfer amount must be positive.")
+
+        with self._connect(autocommit=True) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            before_from = None
+            before_to = None
+            try:
+                from_account = self._ensure_exists(connection, "accounts", "account_id", from_account_id, "Source account not found.")
+                to_account = self._ensure_exists(connection, "accounts", "account_id", to_account_id, "Destination account not found.")
+                if from_account["status"] != "ACTIVE" or to_account["status"] != "ACTIVE":
+                    raise ValueError("Both accounts must be active for transfer.")
+
+                before_from = float(from_account["balance"])
+                before_to = float(to_account["balance"])
+
+                debit_cursor = connection.execute(
+                    """
+                    UPDATE accounts
+                    SET balance = ROUND(balance - ?, 2)
+                    WHERE account_id = ?
+                      AND balance >= ?
+                    """,
+                    (amount, from_account_id, amount),
+                )
+                if debit_cursor.rowcount != 1:
+                    raise ValueError("Insufficient balance for simulated failure.")
+
+                raise RuntimeError("Simulated crash after debit and before credit.")
+            except ValueError:
+                connection.rollback()
+                raise
+            except RuntimeError as exc:
+                connection.rollback()
+                after_from = float(
+                    connection.execute(
+                        "SELECT balance FROM accounts WHERE account_id = ?",
+                        (from_account_id,),
+                    ).fetchone()[0]
+                )
+                after_to = float(
+                    connection.execute(
+                        "SELECT balance FROM accounts WHERE account_id = ?",
+                        (to_account_id,),
+                    ).fetchone()[0]
+                )
+                return {
+                    "from_account_id": from_account_id,
+                    "to_account_id": to_account_id,
+                    "amount": amount,
+                    "before_from_balance": before_from,
+                    "before_to_balance": before_to,
+                    "after_from_balance": after_from,
+                    "after_to_balance": after_to,
+                    "rollback_preserved_balances": before_from == after_from and before_to == after_to,
+                    "message": str(exc),
+                }
+
     def create_loan(self, payload: dict[str, Any]) -> dict[str, Any]:
         customer_id = int(payload.get("customer_id", 0))
         account_id = int(payload.get("account_id", 0))
@@ -506,7 +616,7 @@ class BankingService:
             raise ValueError("Loan amount and tenure must be positive.")
 
         monthly_emi = self._calculate_emi(principal_amount, interest_rate, tenure_months)
-        parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        datetime.strptime(start_date, "%Y-%m-%d").date()
 
         with self._connect(autocommit=True) as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -536,7 +646,7 @@ class BankingService:
                         start_date,
                         status
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
                     """,
                     (
                         customer_id,
@@ -552,36 +662,6 @@ class BankingService:
                 )
                 loan_id = int(cursor.lastrowid)
 
-                connection.execute(
-                    """
-                    UPDATE accounts
-                    SET balance = ROUND(balance + ?, 2)
-                    WHERE account_id = ?
-                    """,
-                    (principal_amount, account_id),
-                )
-                updated_account = self._ensure_exists(connection, "accounts", "account_id", account_id, "Account not found.")
-                self._record_transaction(
-                    connection,
-                    account_id=account_id,
-                    txn_type="LOAN_DISBURSAL",
-                    amount=principal_amount,
-                    balance_after=updated_account["balance"],
-                    channel="SYSTEM",
-                    description=f"{loan_type} loan disbursal",
-                    txn_group_id=f"LOAN-{loan_id}",
-                )
-
-                for installment_no in range(1, tenure_months + 1):
-                    due_date = self._add_months(parsed_start_date, installment_no).isoformat()
-                    connection.execute(
-                        """
-                        INSERT INTO emis (loan_id, installment_no, due_date, amount, status)
-                        VALUES (?, ?, ?, ?, 'PENDING')
-                        """,
-                        (loan_id, installment_no, due_date, monthly_emi),
-                    )
-
                 connection.commit()
             except Exception:
                 connection.rollback()
@@ -592,7 +672,74 @@ class BankingService:
                 "monthly_emi": monthly_emi,
                 "principal_amount": principal_amount,
                 "tenure_months": tenure_months,
-                "disbursed_to_account": account["account_number"],
+                "status": "PENDING",
+                "application_submitted_for": account["account_number"],
+            }
+
+    def approve_loan(self, payload: dict[str, Any]) -> dict[str, Any]:
+        loan_id = int(payload.get("loan_id", 0))
+        if loan_id <= 0:
+            raise ValueError("A valid loan id is required.")
+
+        with self._connect(autocommit=True) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                loan = self._loan_snapshot(connection, loan_id)
+                if loan["status"] != "PENDING":
+                    raise ValueError("Only pending loans can be approved.")
+                if loan["account_status"] != "ACTIVE":
+                    raise ValueError("Loan can only be approved for an active account.")
+                if loan["primary_customer_id"] != loan["customer_id"]:
+                    raise ValueError("Loan account does not belong to the selected customer.")
+
+                parsed_start_date = datetime.strptime(loan["start_date"], "%Y-%m-%d").date()
+
+                connection.execute(
+                    """
+                    UPDATE loans
+                    SET status = 'ACTIVE'
+                    WHERE loan_id = ?
+                    """,
+                    (loan_id,),
+                )
+                connection.execute(
+                    """
+                    UPDATE accounts
+                    SET balance = ROUND(balance + ?, 2)
+                    WHERE account_id = ?
+                    """,
+                    (loan["principal_amount"], loan["account_id"]),
+                )
+                updated_account = self._ensure_exists(connection, "accounts", "account_id", loan["account_id"], "Account not found.")
+                self._record_transaction(
+                    connection,
+                    account_id=loan["account_id"],
+                    txn_type="LOAN_DISBURSAL",
+                    amount=loan["principal_amount"],
+                    balance_after=updated_account["balance"],
+                    channel="SYSTEM",
+                    description=f"{loan['loan_type']} loan disbursal",
+                    txn_group_id=f"LOAN-{loan_id}",
+                )
+                self._create_emi_schedule(
+                    connection,
+                    loan_id=loan_id,
+                    start_date=parsed_start_date,
+                    tenure_months=int(loan["tenure_months"]),
+                    monthly_emi=float(loan["monthly_emi"]),
+                )
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+
+            return {
+                "loan_id": loan_id,
+                "status": "ACTIVE",
+                "monthly_emi": loan["monthly_emi"],
+                "principal_amount": loan["principal_amount"],
+                "disbursed_to_account": loan["account_number"],
+                "customer_name": loan["customer_name"],
             }
 
     def _close_loan_if_completed(self, connection, loan_id: int) -> None:
