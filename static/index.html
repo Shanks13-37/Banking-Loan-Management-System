@@ -785,34 +785,15 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">DBMS Operations</div>
-            <span class="badge badge-blue" id="failure-status">Ready</span>
           </div>
           <div class="card-body">
             <div class="flex gap-8" style="flex-wrap: wrap;">
               <button class="btn btn-ghost" onclick="runConcurrencyDemo()">Run Concurrency Demo</button>
-              <button class="btn btn-ghost" onclick="runFailedTransferDemo()">Simulate Failed Transfer</button>
               <button class="btn btn-danger" onclick="resetDemoData()">Reset Seed Data</button>
             </div>
             <p style="margin-top: 14px; color: var(--text-2); line-height: 1.6;">
-              Use these controls to demonstrate lost-update prevention, rollback after a simulated crash, and to restore the seeded dataset before another run.
+              Use these controls to demonstrate lost-update prevention and to restore the seeded dataset before another run.
             </p>
-            <div id="failure-summary" style="margin-top: 14px; color: var(--text-2); line-height: 1.6;">
-              Run the failed transfer demo to prove that the debit is rolled back if the credit never happens.
-            </div>
-            <div class="table-wrap mt-16">
-              <table>
-                <thead>
-                  <tr>
-                    <th>From Balance</th>
-                    <th>After Rollback</th>
-                    <th>To Balance</th>
-                    <th>After Rollback</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="failure-table"></tbody>
-              </table>
-            </div>
           </div>
         </div>
 
@@ -923,10 +904,10 @@
       <div class="section-header">
         <div>
           <div class="section-title">Fund Transfer</div>
-          <div class="section-sub">Transfer between accounts</div>
+          <div class="section-sub">Transfer between accounts and demonstrate rollback safety</div>
         </div>
       </div>
-      <div style="max-width: 560px;">
+      <div class="grid-2" style="align-items: start;">
         <div class="card">
           <div class="card-header"><div class="card-title">New Transfer</div></div>
           <div class="card-body">
@@ -950,6 +931,37 @@
             </div>
             <div class="mt-16">
               <button class="btn btn-primary" onclick="doTransfer()" style="width:100%">Transfer Funds →</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Rollback Simulator</div>
+            <span class="badge badge-blue" id="failure-status">Ready</span>
+          </div>
+          <div class="card-body">
+            <p style="color: var(--text-2); line-height: 1.6;">
+              Simulate a crash after the debit step and show that the database rolls the whole transfer back.
+            </p>
+            <div class="mt-16">
+              <button class="btn btn-ghost" onclick="runFailedTransferDemo()" style="width:100%">Simulate Failed Transfer</button>
+            </div>
+            <div id="failure-summary" style="margin-top: 14px; color: var(--text-2); line-height: 1.6;">
+              Run the failed transfer demo to prove that the debit is rolled back if the credit never happens.
+            </div>
+            <div class="table-wrap mt-16">
+              <table>
+                <thead>
+                  <tr>
+                    <th>From Balance</th>
+                    <th>After Rollback</th>
+                    <th>To Balance</th>
+                    <th>After Rollback</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="failure-table"></tbody>
+              </table>
             </div>
           </div>
         </div>
